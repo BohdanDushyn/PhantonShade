@@ -8,6 +8,7 @@
 
 
 
+
 AMainCharacter::AMainCharacter() : Super()
 {
 	this->CharacterLevel = 1.0f;
@@ -18,6 +19,9 @@ AMainCharacter::AMainCharacter() : Super()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("MainCameraComponent"));
 	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 
+    ProceduralShadow = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ProceduralShadow"));
+
+    ProceduralShadow->bUseComplexAsSimpleCollision = false; 
 }
 
 void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) 

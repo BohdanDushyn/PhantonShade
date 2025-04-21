@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "ProceduralMeshComponent.h"
 #include "CoreMinimal.h"
 #include "MyCharacter.h"
 #include "InputActionValue.h"
@@ -28,6 +29,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere)
 	UCameraComponent* Camera;
+
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
+	UProceduralMeshComponent* ProceduralShadow;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
