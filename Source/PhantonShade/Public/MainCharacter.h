@@ -31,6 +31,16 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Light Management")
+	TArray<AActor*> LightSources;
+
+	UFUNCTION(BlueprintCallable, Category = "Light Management")
+	void ProcessLightSources();
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "Light Management")
+	void CreateShadow(AActor* LightActor, int32 SectionIndex);
+	virtual void CreateShadow_Implementation(AActor* LightActor, int32 SectionIndex);
+
 protected:
 	UPROPERTY(EditAnywhere, Category = "Enhanched Input")
 	class UInputMappingContext* InputMappingContext;
@@ -44,5 +54,6 @@ protected:
 	void TestActionPressed();
 
 	void Move(const FInputActionValue& InputValue);
-
+private:
+	void ProcessSingleLightSource(AActor* LightSource, int32 SectionID);
 };

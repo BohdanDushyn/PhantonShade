@@ -38,6 +38,85 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	}
 }
 
+struct FLightProcessingTask : public FRunnable
+{
+	AActor* LightSource;
+	int32 SectionID;
+	AMainCharacter* Owner;
+	FRunnableThread* Thread;
+
+	FLightProcessingTask(AActor* InLightSource, int32 InSectionID, AMainCharacter* InOwner)
+		: LightSource(InLightSource), SectionID(InSectionID), Owner(InOwner), Thread(nullptr)
+	{
+	}
+
+	virtual bool Init() override { return true; }
+	virtual uint32 Run() override;
+	virtual void Stop() override {}
+};
+
+uint32 FLightProcessingTask::Run()
+{
+	FPlatformProcess::Sleep(0.01f); // Невелика затримка (опціонально)
+
+	if (Owner && LightSource)
+	{
+		// Безпосередньо викликаємо функцію CreateShadow на об'єкті Owner (AMyLightManager)
+		Owner->CreateShadow(LightSource, SectionID);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Owner is null in FLightProcessingTask!"));
+	}
+	return 0;
+}
+
+void AMainCharacter::ProcessLightSources()
+{
+	int32 NumLightSources = LightSources.Num();
+	if (NumLightSources > 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Processing %d light sources in separate threads."), NumLightSources);
+		for (int32 i = 0; i < NumLightSources; ++i)
+		{
+			if (AActor* LightSource = LightSources[i])
+			{
+				// Створення нової задачі для потоку, передаючи 'this' як Owner
+				FLightProcessingTask* Task = new FLightProcessingTask(LightSource, i, this);
+				FRunnableThread* Thread = FRunnableThread::Create(Task, *FString::Printf(TEXT("LightProcessingThread_%d"), i));
+				Task->Thread = Thread;
+			}
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No light sources to process."));
+	}
+}
+
+void AMainCharacter::ProcessSingleLightSource(AActor* LightSource, int32 SectionID)
+{
+	// Ця функція більше не використовується безпосередньо в потоках,
+	// але може бути корисною для послідовної обробки, якщо знадобиться.
+	CreateShadow(LightSource, SectionID);
+}
+
+void AMainCharacter::CreateShadow_Implementation(AActor* LightActor, int32 SectionIndex)
+{
+	// За замовчуванням, C++ реалізація може бути порожньою або містити базову логіку.
+	// Blueprint-клас, похідний від AMyLightManager, перекриє цю функцію.
+	UE_LOG(LogTemp, Warning, TEXT("C++ CreateShadow_Implementation called (should be overridden in Blueprint)."));
+}
+
+void AMainCharacter::CreateShadow(AActor* LightActor, int32 SectionIndex)
+{
+	// Ця частина необхідна для BlueprintNativeEvent, щоб викликати Blueprint-реалізацію.
+	// Виклик _Implementation функції призведе до виклику Blueprint-перевизначення, якщо воно існує.
+	CreateShadow_Implementation(LightActor, SectionIndex);
+}
+
+
+
 void AMainCharacter::TestActionPressed()
 {
 	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Test Action Pressed"));
