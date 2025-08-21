@@ -10,8 +10,6 @@ UAC_ShadowComponent::UAC_ShadowComponent()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = false;
 
-	FirstNumber = 0.0f;
-	SecondNumber = 0.0f;
 }
 
 
@@ -19,31 +17,74 @@ UAC_ShadowComponent::UAC_ShadowComponent()
 void UAC_ShadowComponent::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// Виведення початкових значень в лог
-	UE_LOG(LogTemp, Warning, TEXT("MathCalculatorComponent initialized with values: %f + %f"), FirstNumber, SecondNumber);
 	
 }
 
-void UAC_ShadowComponent::SetNumbers(float InFirstNumber, float InSecondNumber)
+void UAC_ShadowComponent::AddLightActor(AActor* Actor)
 {
-	FirstNumber = InFirstNumber;
-	SecondNumber = InSecondNumber;
-
-	UE_LOG(LogTemp, Warning, TEXT("Numbers set to: %f and %f"), FirstNumber, SecondNumber);
+	if (Actor)
+	{
+		TSoftObjectPtr<AActor> SoftActor(Actor);
+		LightActors.AddUnique(SoftActor);
+	}
 }
 
-float UAC_ShadowComponent::AddTwoNumbers(float A, float B)
+void UAC_ShadowComponent::SetLightActors(const TArray<AActor*>& Actors)
 {
-	float Result = A + B;
+	LightActors.Empty();
 
-	UE_LOG(LogTemp, Warning, TEXT("Adding two numbers: %f + %f = %f"), A, B, Result);
-
-	if (GEngine)
+	for (AActor* Actor : Actors)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue,
-			FString::Printf(TEXT("Direct calculation: %.2f + %.2f = %.2f"), A, B, Result));
+		if (Actor)
+		{
+			TSoftObjectPtr<AActor> SoftActor(Actor);
+			LightActors.Add(SoftActor);
+		}
+	}
+}
+
+void UAC_ShadowComponent::ClearLightActors()
+{
+	LightActors.Empty();
+}
+
+void UAC_ShadowComponent::RemoveLightActor(AActor* Actor)
+{
+	if (Actor)
+	{
+		TSoftObjectPtr<AActor> SoftActor(Actor);
+		LightActors.Remove(SoftActor);
+	}
+}
+
+TArray<AActor*> UAC_ShadowComponent::GetLoadedLightActors()
+{
+	TArray<AActor*> LoadedActors;
+
+	for (const TSoftObjectPtr<AActor>& SoftActor : LightActors)
+	{
+		if (AActor* Actor = SoftActor.Get())
+		{
+			LoadedActors.Add(Actor);
+		}
 	}
 
-	return Result;
+	return LoadedActors;
 }
+
+bool UAC_ShadowComponent::ContainsLightActor(AActor* Actor)
+{
+	if (!Actor)
+	{
+		return false;
+	}
+
+	TSoftObjectPtr<AActor> SoftActor(Actor);
+	return LightActors.Contains(SoftActor);
+}
+
+int32 UAC_ShadowComponent::GetAmount()
+{
+	return LightActors.Num();
+}
+

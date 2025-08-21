@@ -4,10 +4,34 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
+#include "ProceduralMeshComponent.h"
 #include "AC_ShadowComponent.generated.h"
 
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
+USTRUCT(BlueprintType)
+struct FLightSourceParams
+{
+    GENERATED_BODY()
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere)
+    float SourceRadius = 0.0f;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere)
+    float AttenuationRadius = 0.0f;
+
+    UPROPERTY(BlueprintReadWrite, EditAnywhere)
+    FVector Location = FVector::ZeroVector;
+
+    FLightSourceParams()
+    {
+        SourceRadius = 0.0f;
+        AttenuationRadius = 0.0f;
+        Location = FVector::ZeroVector;
+    }
+};
+
+
+UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class PHANTONSHADE_API UAC_ShadowComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -20,25 +44,36 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Math Calculator", meta = (DisplayName = "First Number"))
-	float FirstNumber;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Math Calculator", meta = (DisplayName = "Second Number"))
-	float SecondNumber;
-
 public:	
-	UFUNCTION(BlueprintCallable, Category = "Math Calculator", meta = (DisplayName = "Set Numbers"))
-	void SetNumbers(float InFirstNumber, float InSecondNumber);
 
-	// Функція для отримання результату з параметрами (доступна в Blueprint)
-	UFUNCTION(BlueprintCallable, Category = "Math Calculator", meta = (DisplayName = "Add Two Numbers"))
-	float AddTwoNumbers(float A, float B);
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting")
+    TArray<TSoftObjectPtr<AActor>> LightActors;
 
-	// Геттери для чисел
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Math Calculator", meta = (DisplayName = "Get First Number"))
-	float GetFirstNumber() const { return FirstNumber; }
+    // Додати один актор до масиву
+    UFUNCTION(BlueprintCallable, Category = "Lighting")
+    void AddLightActor(AActor* Actor);
 
-	UFUNCTION(BlueprintCallable, BlueprintPure, Category = "Math Calculator", meta = (DisplayName = "Get Second Number"))
-	float GetSecondNumber() const { return SecondNumber; }
+    // Встановити весь масив акторів
+    UFUNCTION(BlueprintCallable, Category = "Lighting")
+    void SetLightActors(const TArray<AActor*>& Actors);
+
+    // Очистити масив
+    UFUNCTION(BlueprintCallable, Category = "Lighting")
+    void ClearLightActors();
+
+    // Видалити конкретний актор з масиву
+    UFUNCTION(BlueprintCallable, Category = "Lighting")
+    void RemoveLightActor(AActor* Actor);
+
+    // Отримати всі актори (завантажені)
+    UFUNCTION(BlueprintCallable, Category = "Lighting")
+    TArray<AActor*> GetLoadedLightActors();
+
+    // Перевірити чи містить масив конкретний актор
+    UFUNCTION(BlueprintCallable, Category = "Lighting")
+    bool ContainsLightActor(AActor* Actor);
 		
+    UFUNCTION(BlueprintCallable, Category = "Lighting")
+    int32 GetAmount();
+
 };
