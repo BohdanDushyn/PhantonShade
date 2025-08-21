@@ -3,4 +3,4 @@
 
 #include "LightSoursInterface.h"
 
-// Add default functionality here for any ILightSoursInterface functions that are not pure virtual.
+

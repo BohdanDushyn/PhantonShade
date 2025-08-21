@@ -25,3 +25,8 @@ void ALIghtActor::Tick(float DeltaTime)
 
 }
 
+FVector ALIghtActor::GetLightSourPosition_Implementation()
+{
+	return GetActorLocation();
+}
+

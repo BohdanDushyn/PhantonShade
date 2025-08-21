@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "ProceduralMeshComponent.h"
+#include "../ShadowEngine/LightSoursInterface.h"
 #include "AC_ShadowComponent.generated.h"
 
 
@@ -76,4 +77,6 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Lighting")
     int32 GetAmount();
 
+    UFUNCTION(BlueprintCallable, Category = "Lighting")
+    void ShowStat();
 };

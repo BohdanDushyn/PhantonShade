@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "../ShadowEngine/LightSoursInterface.h"
 #include "LIghtActor.generated.h"
 
 UCLASS()
-class PHANTONSHADE_API ALIghtActor : public AActor
+class PHANTONSHADE_API ALIghtActor : public AActor, public ILightSoursInterface
 {
 	GENERATED_BODY()
 	
@@ -23,4 +24,5 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	FVector GetLightSourPosition_Implementation() override;
 };

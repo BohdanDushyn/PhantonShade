@@ -88,3 +88,38 @@ int32 UAC_ShadowComponent::GetAmount()
 	return LightActors.Num();
 }
 
+void UAC_ShadowComponent::ShowStat()
+{
+	UE_LOG(LogTemp, Warning, TEXT("=== Light Actors Positions ==="));
+
+	for (int32 i = 0; i < LightActors.Num(); i++)
+	{
+		const TSoftObjectPtr<AActor>& SoftActor = LightActors[i];
+
+		if (AActor* Actor = SoftActor.Get())
+		{
+			// Перевіряємо чи актор реалізує інтерфейс
+			if (Actor->Implements<ULightSoursInterface>())
+			{
+				// Викликаємо інтерфейс через Execute
+				FVector Position = ILightSoursInterface::Execute_GetLightSourPosition(Actor);
+				UE_LOG(LogTemp, Warning, TEXT("Actor [%d] %s Position: %s"),
+					i, *Actor->GetName(), *Position.ToString());
+			}
+			else
+			{
+				// Fallback - стандартна позиція актора
+				FVector Position = Actor->GetActorLocation();
+				UE_LOG(LogTemp, Warning, TEXT("Actor [%d] %s Position (fallback): %s"),
+					i, *Actor->GetName(), *Position.ToString());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Actor [%d]: NULL or not loaded"), i);
+		}
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("=== End Light Actors Positions ==="));
+}
+
