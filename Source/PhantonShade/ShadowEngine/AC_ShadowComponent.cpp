@@ -17,7 +17,49 @@ UAC_ShadowComponent::UAC_ShadowComponent()
 void UAC_ShadowComponent::BeginPlay()
 {
 	Super::BeginPlay();
-	
+}
+
+
+void UAC_ShadowComponent::StartShadowCalculate()
+{
+	GetWorld()->GetTimerManager().SetTimer(
+		MyTimerHandle,
+		this,
+		&UAC_ShadowComponent::ShowAllStat,
+		TimerInterval,
+		true,
+		FMath::FRand()
+	);
+}
+
+void UAC_ShadowComponent::StartShadowCalculateWithSetTimer(float NewTimer)
+{
+	SetTimerInterval(NewTimer);
+	GetWorld()->GetTimerManager().SetTimer(
+		MyTimerHandle,
+		this,
+		&UAC_ShadowComponent::ShowAllStat,
+		NewTimer,
+		true,
+		0.0f
+	);
+}
+
+void UAC_ShadowComponent::SetTimerInterval(float NewTimerInterval)
+{
+	TimerInterval = NewTimerInterval;
+	if (GetWorld()->GetTimerManager().IsTimerActive(MyTimerHandle))
+	{
+		GetWorld()->GetTimerManager().SetTimer(
+			MyTimerHandle,
+			this,
+			&UAC_ShadowComponent::ShowAllStat,
+			TimerInterval,
+			true,
+			0.0f
+		);
+	}
+
 }
 
 void UAC_ShadowComponent::AddLightActor(AActor* Actor)
@@ -88,38 +130,97 @@ int32 UAC_ShadowComponent::GetAmount()
 	return LightActors.Num();
 }
 
-void UAC_ShadowComponent::ShowStat()
+FLineTraceResult UAC_ShadowComponent::LineTraceWithOffset(const FVector& LightStartLocation, float OffsetX, float OffsetZ, float RayMaxLength)
 {
-	UE_LOG(LogTemp, Warning, TEXT("=== Light Actors Positions ==="));
+	FLineTraceResult Result;
+	Result.bIsTraced = false;
+	FVector StartPoint = LightStartLocation;
+	FVector CalculatedXOffset = (GetOwner()->GetActorLocation() - LightStartLocation).GetSafeNormal().Cross(FVector(0, 0, 1)) * OffsetX;
+	CalculatedXOffset += GetOwner()->GetActorLocation() - LightStartLocation;
+	CalculatedXOffset += FVector(0, 0, OffsetZ);
+	FVector EndPoint = LightStartLocation + (CalculatedXOffset * RayMaxLength);
+
+	TArray<FHitResult> HitResults;
+	FCollisionQueryParams Params;
+
+	bool bHit = GetWorld()->LineTraceMultiByChannel(
+		HitResults,
+		StartPoint,
+		EndPoint,
+		ECollisionChannel::ECC_EngineTraceChannel1,
+		Params
+	);
+
+	FColor LineColor = bHit ? FColor::Red : FColor::Green;
+	DrawDebugLine(
+		GetWorld(),
+		StartPoint,
+		EndPoint,
+		LineColor,
+		false,      // persistent lines
+		0.1f,       // lifetime (seconds)
+		0,          // depth priority
+		2.0f        // thickness
+	);
+
+	int8 LastHit = HitResults.Num() - 1;
+	if (HitResults[0].GetComponent() == GetOwner()->FindComponentByClass<UCapsuleComponent>() && HitResults[LastHit].GetActor() != GetOwner()) {
+		//Result.StartPoint = HitResults[0].ImpactPoint;
+		Result.EndPointResult = HitResults[LastHit].ImpactPoint;
+		Result.bIsTraced = true;
+	}
+
+	return FLineTraceResult();
+}
+
+FVector2D UAC_ShadowComponent::MakeOffset(FVector OffsetValue, FVector LightPosition)
+{
+	double Dot = FVector::DotProduct((LightPosition - GetOwner()->GetActorLocation()).GetSafeNormal(), GetOwner()->GetActorForwardVector().GetSafeNormal());
+	return FVector2D((OffsetValue * FVector(FMath::Abs(Dot), 1 - FMath::Abs(Dot), 0)).Length(), OffsetValue.Z);
+}
+
+TArray<FVector> UAC_ShadowComponent::MakeShadowFloor(FVector Offset, FVector LightStartLocation, float RayMaxLenght, int AmountOfPieces)
+{
+
+	return TArray<FVector>();
+}
+
+void UAC_ShadowComponent::ShowAllStat()
+{
+	//UE_LOG(LogTemp, Warning, TEXT("=== Light Actors Positions ==="));
 
 	for (int32 i = 0; i < LightActors.Num(); i++)
 	{
-		const TSoftObjectPtr<AActor>& SoftActor = LightActors[i];
+		FFunctionGraphTask::CreateAndDispatchWhenReady([this, i] {
+			ShowOneStat(LightActors[i], i);
+			}, TStatId(), nullptr, ENamedThreads::AnyBackgroundHiPriTask);
+	}
+	//UE_LOG(LogTemp, Warning, TEXT("=== End Light Actors Positions ==="));
+}
 
-		if (AActor* Actor = SoftActor.Get())
+void UAC_ShadowComponent::ShowOneStat(const TSoftObjectPtr<AActor>& LightActorPtr, int32 id)
+{
+	const TSoftObjectPtr<AActor>& SoftActor = LightActorPtr;
+
+	if (AActor* Actor = SoftActor.Get())
+	{
+		// Перевіряємо чи актор реалізує інтерфейс
+		if (Actor->Implements<ULightSoursInterface>())
 		{
-			// Перевіряємо чи актор реалізує інтерфейс
-			if (Actor->Implements<ULightSoursInterface>())
-			{
-				// Викликаємо інтерфейс через Execute
-				FVector Position = ILightSoursInterface::Execute_GetLightSourPosition(Actor);
-				UE_LOG(LogTemp, Warning, TEXT("Actor [%d] %s Position: %s"),
-					i, *Actor->GetName(), *Position.ToString());
-			}
-			else
-			{
-				// Fallback - стандартна позиція актора
-				FVector Position = Actor->GetActorLocation();
-				UE_LOG(LogTemp, Warning, TEXT("Actor [%d] %s Position (fallback): %s"),
-					i, *Actor->GetName(), *Position.ToString());
-			}
+			// Викликаємо інтерфейс через Execute
+			FVector Position = ILightSoursInterface::Execute_GetLightSourPosition(Actor);
+			//UE_LOG(LogTemp, Warning, TEXT("Actor [%d] %s Position: %s"), id, *Actor->GetName(), *Position.ToString());
 		}
 		else
 		{
-			UE_LOG(LogTemp, Error, TEXT("Actor [%d]: NULL or not loaded"), i);
+			// Fallback - стандартна позиція актора
+			FVector Position = Actor->GetActorLocation();
+			//UE_LOG(LogTemp, Warning, TEXT("Actor [%d] %s Position (fallback): %s"), id, *Actor->GetName(), *Position.ToString());
 		}
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("=== End Light Actors Positions ==="));
+	else
+	{
+		//UE_LOG(LogTemp, Error, TEXT("Actor [%d]: NULL or not loaded"), id);
+	}
 }
 

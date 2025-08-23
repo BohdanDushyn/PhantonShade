@@ -6,31 +6,26 @@
 #include "Components/ActorComponent.h"
 #include "ProceduralMeshComponent.h"
 #include "../ShadowEngine/LightSoursInterface.h"
+#include "TimerManager.h"
+#include "Engine/World.h"
+#include "Components/CapsuleComponent.h"
 #include "AC_ShadowComponent.generated.h"
 
 
 USTRUCT(BlueprintType)
-struct FLightSourceParams
+struct FLineTraceResult
 {
     GENERATED_BODY()
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere)
-    float SourceRadius = 0.0f;
+    //UPROPERTY(BlueprintReadOnly)
+    //FVector StartPointResult;
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere)
-    float AttenuationRadius = 0.0f;
+    UPROPERTY(BlueprintReadOnly)
+    FVector EndPointResult;
 
-    UPROPERTY(BlueprintReadWrite, EditAnywhere)
-    FVector Location = FVector::ZeroVector;
-
-    FLightSourceParams()
-    {
-        SourceRadius = 0.0f;
-        AttenuationRadius = 0.0f;
-        Location = FVector::ZeroVector;
-    }
+    UPROPERTY(BlueprintReadOnly)
+    bool bIsTraced;
 };
-
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent), Blueprintable)
 class PHANTONSHADE_API UAC_ShadowComponent : public UActorComponent
@@ -45,10 +40,23 @@ protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
 
+    FTimerHandle MyTimerHandle;
+
+	float TimerInterval = 1.0f;
+
 public:	
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting")
     TArray<TSoftObjectPtr<AActor>> LightActors;
+
+    UFUNCTION(BlueprintCallable, Category = "LightingTimer")
+    void StartShadowCalculate();
+
+    UFUNCTION(BlueprintCallable, Category = "LightingTimer")
+    void StartShadowCalculateWithSetTimer(float NewTimer);
+    
+    UFUNCTION(BlueprintCallable, Category = "LightingTimer")
+    void SetTimerInterval(float NewTimerInterval);
 
     // Додати один актор до масиву
     UFUNCTION(BlueprintCallable, Category = "Lighting")
@@ -77,6 +85,17 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Lighting")
     int32 GetAmount();
 
+    UFUNCTION(BlueprintCallable, Category = "ShadowFunction")
+    FLineTraceResult LineTraceWithOffset(const FVector& LightStartLocation, float OffsetX, float OffsetZ, float RayMaxLength);
+
+    UFUNCTION(BlueprintCallable, Category = "ShadowFunction")
+    FVector2D MakeOffset(FVector OffsetValue, FVector LightPosition);
+
+    UFUNCTION(BlueprintCallable, Category = "ShadowFunction")
+    TArray<FVector> MakeShadowFloor(FVector Offset, FVector LightStartLocation, float RayMaxLenght, int AmountOfPieces);
+
     UFUNCTION(BlueprintCallable, Category = "Lighting")
-    void ShowStat();
+    void ShowAllStat();
+
+    void ShowOneStat(const TSoftObjectPtr<AActor>& LightActorPtr, int32 id);
 };
