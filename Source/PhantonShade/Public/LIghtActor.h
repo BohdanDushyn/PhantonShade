@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
 #include "../ShadowEngine/LightSoursInterface.h"
+#include "Components/PointLightComponent.h" 
 #include "LIghtActor.generated.h"
 
 UCLASS()
@@ -25,4 +26,5 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	FVector GetLightSourPosition_Implementation() override;
+	float GetLightSourAttenuationRadius_Implementation() override;
 };

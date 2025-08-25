@@ -24,4 +24,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	FVector GetLightSourPosition();
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	float GetLightSourAttenuationRadius();
 };
