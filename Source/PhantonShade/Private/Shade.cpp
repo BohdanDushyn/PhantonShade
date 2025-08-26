@@ -6,11 +6,15 @@
 // Sets default values
 AShade::AShade() : Super()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
-	UProceduralMeshComponent* ProcMesh = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ProcShadow"));
-	ProcMesh->bUseComplexAsSimpleCollision = false;
+	DefaultSceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultSceneRoot"));
+	RootComponent = DefaultSceneRoot;
+
+	MeshComponent = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ProcShadow"));
+	MeshComponent->SetupAttachment(RootComponent);
+	MeshComponent->bUseAsyncCooking = true;
+	MeshComponent->bUseComplexAsSimpleCollision = false;
 
 }
 
@@ -55,6 +59,11 @@ void AShade::UpdateShadowActorMesh_Implementation(int32 SectionID, const TArray<
    {  
        UE_LOG(LogTemp, Warning, TEXT("MeshComponent is not initialized!"));  
    }  
+}
+
+void AShade::UpdateShadowActorMeshTransform_Implementation(const FTransform& ObjTransform)
+{
+	SetActorTransform(ObjTransform);
 }
 
 /*

@@ -4,3 +4,8 @@
 #include "I_ShadowMeshInterface.h"
 
 // Add default functionality here for any II_ShadowMeshInterface functions that are not pure virtual.
+
+FVector GetProceduralMeshLocation()
+{
+	return FVector();
+}

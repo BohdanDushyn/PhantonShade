@@ -32,6 +32,8 @@ public:
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void UpdateShadowActorMesh(int32 SectionID, const TArray<FVector>& VerticesArray, const TArray<int32>& TriangelsArray);
 
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void UpdateShadowActorMeshTransform(const FTransform& ObjTransform);
 	//UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	//void UpdateShadowActorMeshTransform(const FTransform& ObjTransform);
 };

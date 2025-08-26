@@ -186,23 +186,62 @@ FLineTraceResult UAC_ShadowComponent::LineTraceWithOffset(const FVector& LightSt
 			FuncHitResults,
 			FuncStartPoint,
 			FuncEndPoint,
-			ECollisionChannel::ECC_Visibility,
+			ECollisionChannel::ECC_GameTraceChannel2,
 			Params
 		);
 
 		
+		// Завжди малюємо повну лінію
+		/*
 		FColor LineColor = bHit ? FColor::Red : FColor::Green;
 		DrawDebugLine(
 			GetWorld(),
 			FuncStartPoint,
 			FuncEndPoint,
 			LineColor,
-			false,      // persistent lвines
+			false,      // persistent lines
 			0.1f,       // lifetime (seconds)
 			0,          // depth priority
-			2.0f        // thickness
-		);
+			1.0f        // thickness
+		);*/
 		
+		/*
+		// Малюємо точки влучання для всіх перетинів
+		if (bHit)
+		{
+			for (const FHitResult& HitResult : FuncHitResults)
+			{
+				// Малюємо точку влучання
+				DrawDebugSphere(
+					GetWorld(),
+					HitResult.Location,
+					5.0f,       // radius
+					12,         // segments
+					FColor::Yellow,
+					false,      // persistent
+					0.1f,       // lifetime
+					0,          // depth priority
+					1.0f        // thickness
+				);
+				
+				
+				// Опціонально: малюємо нормаль поверхні
+				//DrawDebugDirectionalArrow(
+				//	GetWorld(),
+				//	HitResult.Location,
+				//	HitResult.Location + HitResult.Normal * 30.0f,
+				//	8.0f,       // arrow size
+				//	FColor::Blue,
+				//	false,      // persistent
+				//	0.1f,       // lifetime
+				//	0,          // depth priority
+				//	1.5f        // thickness
+				//);
+				
+			}
+		}
+		*/
+
 		return FuncHitResults;
 		};
 	
@@ -214,11 +253,13 @@ FLineTraceResult UAC_ShadowComponent::LineTraceWithOffset(const FVector& LightSt
 
 	HitResults = *SharedResults;
 
-	
+	//UE_LOG(LogTemp, Warning, TEXT("HitResults %d %d"), Offset, HitResults.Num());
 	int8 LastHit = HitResults.Num() - 1;
-	if (HitResults.Num() > 0)
+	if (HitResults.Num() >= 2)
 	{
+		//UE_LOG(LogTemp, Warning, TEXT("HitResults %s"), *HitResults[0].GetComponent()->GetName());
 		if (HitResults[0].GetComponent() == GetOwner()->FindComponentByClass<UCapsuleComponent>() && HitResults[LastHit].GetActor() != GetOwner()) {
+			//UE_LOG(LogTemp, Warning, TEXT("HitResults %s"), *HitResults[LastHit].GetComponent()->GetName());
 			//Result.StartPoint = HitResults[0].ImpactPoint;
 			Result.EndPointResult = HitResults[LastHit].ImpactPoint;
 			Result.bIsTraced = true;
@@ -285,15 +326,24 @@ void UAC_ShadowComponent::CreateShadow()
 
 	FGraphEventArray Tasks;
 	Tasks.Reserve(LightActors.Num());
-	
-	//MeshLocationVector = II_ShadowMeshInterface::Execute_GetProceduralMeshLocation(ShadeActor);
-	//MeshRotator = II_ShadowMeshInterface::Execute_GetProceduralRotation(ShadeActor) * -1;
 
-	MeshLocationVector = GetOwner()->GetActorLocation();
-	MeshRotator = GetOwner()->GetActorRotation();
+	if (!ShadeActor || !IsValid(ShadeActor))
+	{
+		UE_LOG(LogTemp, Error, TEXT("ShadeActor is not valid in CreateShadow"));
+		return;
+	}
+
+	II_ShadowMeshInterface::Execute_UpdateShadowActorMeshTransform(ShadeActor, GetOwner()->GetActorTransform());
+
+	MeshLocationVector = II_ShadowMeshInterface::Execute_GetProceduralMeshLocation(ShadeActor);
+	MeshRotator = II_ShadowMeshInterface::Execute_GetProceduralRotation(ShadeActor) * -1;
+
+	//MeshLocationVector = GetOwner()->GetActorLocation();
+	//MeshRotator = GetOwner()->GetActorRotation();
 
 	TWeakObjectPtr<UAC_ShadowComponent> WeakThis(this);
 
+	
 	for (int32 i = 0; i < LightActorsCopy.Num(); i++)
 	{
 
@@ -315,18 +365,14 @@ void UAC_ShadowComponent::CreateShadow()
 		Tasks.Add(Task);
 	}
 
-	//II_ShadowMeshInterface::Execute_UpdateShadowActorMeshTransform(ShadeActor, GetOwner()->GetActorTransform());
-
 	FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks);
 
 	/*
-	for (int32 i = 0; i < LightActors.Num(); i++)
+	for (int32 i = 0; i < LightActorsCopy.Num(); i++)
 	{
-		FFunctionGraphTask::CreateAndDispatchWhenReady([this, i] {
-			CreateOneShadow(LightActors[i], i);
-			}, TStatId(), nullptr, ENamedThreads::AnyBackgroundHiPriTask);
-	}
-	*/
+		CreateOneShadow(LightActorsCopy[i], i);
+	}*/
+	
 }
 
 void UAC_ShadowComponent::CreateOneShadow(TSoftObjectPtr<AActor> LightActor, int32 id)
@@ -385,7 +431,11 @@ void UAC_ShadowComponent::CreateOneShadow(TSoftObjectPtr<AActor> LightActor, int
 		return;
 	}
 	else {
-		//II_ShadowMeshInterface::Execute_UpdateShadowActorMesh(ShadeActor, id, VerticesArray, TriangelsArray);
+		//UE_LOG(LogTemp, Warning, TEXT("VerticesArray or TriangelsArray is NOT empty!"));
+
+		FFunctionGraphTask::CreateAndDispatchWhenReady([this, id, VerticesArray, TriangelsArray]() {
+			II_ShadowMeshInterface::Execute_UpdateShadowActorMesh(ShadeActor, id, VerticesArray, TriangelsArray);
+			}, TStatId(), nullptr, ENamedThreads::GameThread);
 	}
 
 	/*
