@@ -171,7 +171,7 @@ FLineTraceResult UAC_ShadowComponent::LineTraceWithOffset(const FVector& LightSt
 	FVector CalculatedXOffset = (OwnerLocation - LightStartLocation).GetSafeNormal().Cross(FVector(0, 0, 1)) * Offset.X;
 	CalculatedXOffset += OwnerLocation - LightStartLocation;
 	CalculatedXOffset += FVector(0, 0, Offset.Z);
-	FVector EndPoint = LightStartLocation + (CalculatedXOffset * RayMaxLength);
+	FVector EndPoint = LightStartLocation + (CalculatedXOffset.GetSafeNormal() * RayMaxLength);
 	
 	TArray<FHitResult> HitResults;
 	
@@ -190,7 +190,6 @@ FLineTraceResult UAC_ShadowComponent::LineTraceWithOffset(const FVector& LightSt
 			Params
 		);
 
-		
 		// Завжди малюємо повну лінію
 		/*
 		FColor LineColor = bHit ? FColor::Red : FColor::Green;
@@ -406,10 +405,11 @@ void UAC_ShadowComponent::CreateOneShadow(TSoftObjectPtr<AActor> LightActor, int
 			}
 			if (IsPreviousFloorEnebel)
 			{
-				for (int i = VerticesArray.Num() - 4; i < VerticesArray.Num() - 3; i++)
+				for (int i = VerticesArray.Num() - 4; i <= VerticesArray.Num() - 3; i++)
 				{
-					for (int j = i; j < i+2; j++)
+					for (int j = i; j <= i+2; j++)
 					{
+						//UE_LOG(LogTemp, Warning, TEXT("j: %d"), j);
 						TriangelsArray.Add(j);
 					}
 				}
@@ -427,7 +427,7 @@ void UAC_ShadowComponent::CreateOneShadow(TSoftObjectPtr<AActor> LightActor, int
 	}
 	if (VerticesArray.Num() == 0 || TriangelsArray.Num() == 0)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("VerticesArray or TriangelsArray is empty!"));
+		//UE_LOG(LogTemp, Warning, TEXT("VerticesArray or TriangelsArray is empty!"));
 		return;
 	}
 	else {

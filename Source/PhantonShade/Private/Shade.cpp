@@ -14,8 +14,9 @@ AShade::AShade() : Super()
 	MeshComponent = CreateDefaultSubobject<UProceduralMeshComponent>(TEXT("ProcShadow"));
 	MeshComponent->SetupAttachment(RootComponent);
 	MeshComponent->bUseAsyncCooking = true;
-	MeshComponent->bUseComplexAsSimpleCollision = false;
-
+	MeshComponent->bUseComplexAsSimpleCollision = true;
+	//MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	//MeshComponent->SetSimulatePhysics(false);
 }
 
 // Called when the game starts or when spawned
