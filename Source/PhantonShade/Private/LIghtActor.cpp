@@ -25,3 +25,13 @@ void ALIghtActor::Tick(float DeltaTime)
 
 }
 
+FVector ALIghtActor::GetLightSourPosition_Implementation()
+{
+	return GetComponentByClass<UPointLightComponent>()->GetComponentLocation();
+}
+
+float ALIghtActor::GetLightSourAttenuationRadius_Implementation()
+{
+	return GetComponentByClass<UPointLightComponent>()->AttenuationRadius;
+}
+

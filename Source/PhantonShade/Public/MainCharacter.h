@@ -29,6 +29,10 @@ public:
 	UPROPERTY(VisibleAnywhere)
 	UCameraComponent* Camera;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TArray<AActor*> OverlapingWithShadowActors; 
+
+
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:

@@ -16,14 +16,29 @@ public:
 	// Sets default values for this actor's properties
 	AShade();
 
-	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
-	UProceduralMeshComponent* MeshComponent;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+		UProceduralMeshComponent* MeshComponent;
+
+	// Додаємо Root компонент для правильної ієрархії
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	USceneComponent* DefaultSceneRoot;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	void UpdateShadowActorMeshes(int32 SectionID, const TArray<FVector>& VerticesArray, const TArray<int32>& TriangelsArray);
+	void RemoveMeschSection();
 
+	UFUNCTION(BlueprintCallable, Category = "Overlaping")
+	TArray<AActor*> GetAllOverlapingActors();
+	
+	FVector GetProceduralMeshLocationNotInterf();
+	FRotator GetProceduralRotationNotInterf();
+
+	void UpdateShadowActorMeshTransform(const FTransform& ObjTransform);
+
+	int32 GetMeshNumSections() { return MeshComponent->GetNumSections(); }
+	
 };
