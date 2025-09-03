@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Engine/Engine.h"
+#include "Shade.h" 
+#include "LightActor.h"
 #include "Components/ActorComponent.h"
 #include "ProceduralMeshComponent.h"
 #include "../ShadowEngine/LightSoursInterface.h"
-#include "../ShadowEngine/I_ShadowMeshInterface.h"
 #include "TimerManager.h"
 #include "Engine/World.h"
 #include "Components/CapsuleComponent.h"
@@ -71,9 +72,14 @@ protected:
 
 	float TimerInterval = 1.0f;
 
-    AActor* ShadeActor;
+    AActor* ParentActor;
 
-    float OffsetFromPlane = 1;
+    AShade* CastedShadeActor;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Overlaping")
+    TArray<AActor*> OverlapingActors;
+
+    float OffsetFromPlane = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ShadowFunction")
     int AmountOfPieces = 2;
@@ -82,6 +88,12 @@ protected:
     TArray<FVector> MapOfShadow;
 
 public:	 
+    UFUNCTION(BlueprintCallable, Category = "Overlaping")
+    TArray<AActor*> GetShadowOverlapingActors(){ return CastedShadeActor->GetAllOverlapingActors();}
+
+    UFUNCTION(BlueprintCallable, Category = "Overlaping")
+    void SetParentActor();
+
     UFUNCTION(BlueprintCallable, Category = "LightingTimer")
     void SetTimerInterval(float NewTimerInterval);
 
@@ -122,7 +134,7 @@ public:
     void StartShadowCalculateWithSetTimer(float NewTimer);
 
     UFUNCTION(BlueprintCallable, Category = "ShadowFunction")
-    void SetShadeActor(AActor* NewShadeActor) { ShadeActor = NewShadeActor; }
+    void SetShadeActor(AActor* NewShadeActor);
 
     UFUNCTION(BlueprintCallable, Category = "ShadowFunction")
 	void SetAmountOfPieces(int NewAmount) { AmountOfPieces = NewAmount; }
@@ -146,4 +158,6 @@ public:
     void CreateShadow();
 
     void CreateOneShadow(TSoftObjectPtr<AActor> LightActor, int32 id);
+
+    void SetLightActorsFromOverlapping();
 };

@@ -51,6 +51,22 @@ void UAC_ShadowComponent::StartShadowCalculateWithSetTimer(float NewTimer)
 	);
 }
 
+void UAC_ShadowComponent::SetShadeActor(AActor* NewShadeActor)
+{
+	CastedShadeActor = Cast<AShade>(NewShadeActor);
+}
+
+void UAC_ShadowComponent::SetParentActor()
+{
+	//if (!NewParent) return;
+
+	//ParentActor = NewParent;
+
+	if (GetOwner()) return;
+
+	ParentActor = GetOwner();
+}
+
 void UAC_ShadowComponent::SetTimerInterval(float NewTimerInterval)
 {
 	TimerInterval = NewTimerInterval;
@@ -121,6 +137,8 @@ void UAC_ShadowComponent::RemoveLightActor(AActor* Actor)
 		TSoftObjectPtr<AActor> SoftActor(Actor);
 		LightActors.Remove(SoftActor);
 	}
+
+	CastedShadeActor->RemoveMeschSection();
 }
 
 TArray<AActor*> UAC_ShadowComponent::GetLoadedLightActors()
@@ -158,6 +176,7 @@ void UAC_ShadowComponent::StartShadowCalculateWithParams(float TimerDelay, AActo
 {
 	//UE_LOG(LogTemp, Warning, TEXT("StartShadowCalculateWithParams"));
 	SetMapOfShadow(NewMapOfShadow);
+	SetParentActor();
 	SetAmountOfPieces(AmountOfFloorPieces);
 	SetShadeActor(NewShadeActor);
 	SetLightActors(NewLightActors);
@@ -316,6 +335,7 @@ TArray<FVector> UAC_ShadowComponent::MakeShadowFloor(FVector OffsetValue, FVecto
 
 void UAC_ShadowComponent::CreateShadow()
 {
+
 	if (LightActors.Num() == 0) return;
 
 	TArray<TSoftObjectPtr<AActor>> LightActorsCopy = LightActors;
@@ -326,19 +346,15 @@ void UAC_ShadowComponent::CreateShadow()
 	FGraphEventArray Tasks;
 	Tasks.Reserve(LightActors.Num());
 
-	if (!ShadeActor || !IsValid(ShadeActor))
+	if (!CastedShadeActor || !IsValid(CastedShadeActor))
 	{
 		UE_LOG(LogTemp, Error, TEXT("ShadeActor is not valid in CreateShadow"));
 		return;
 	}
 
-	II_ShadowMeshInterface::Execute_UpdateShadowActorMeshTransform(ShadeActor, GetOwner()->GetActorTransform());
-
-	MeshLocationVector = II_ShadowMeshInterface::Execute_GetProceduralMeshLocation(ShadeActor);
-	MeshRotator = II_ShadowMeshInterface::Execute_GetProceduralRotation(ShadeActor) * -1;
-
-	//MeshLocationVector = GetOwner()->GetActorLocation();
-	//MeshRotator = GetOwner()->GetActorRotation();
+	CastedShadeActor->UpdateShadowActorMeshTransform(GetOwner()->GetActorTransform());
+	MeshLocationVector = CastedShadeActor->GetActorLocation();
+	MeshRotator = CastedShadeActor->GetActorRotation() * -1;
 
 	TWeakObjectPtr<UAC_ShadowComponent> WeakThis(this);
 
@@ -366,6 +382,9 @@ void UAC_ShadowComponent::CreateShadow()
 
 	FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks);
 
+	//UE_LOG(LogTemp, Warning, TEXT("Amount %d"), CastedShadeActor->GetMeshNumSections());
+	//UE_LOG(LogTemp, Warning, TEXT("LightAmount %d"), LightActors.Num());
+
 	/*
 	for (int32 i = 0; i < LightActorsCopy.Num(); i++)
 	{
@@ -380,7 +399,7 @@ void UAC_ShadowComponent::CreateOneShadow(TSoftObjectPtr<AActor> LightActor, int
 
 	bool IsPreviousFloorEnebel = false;
 	TArray<FVector> VerticesArray;
-	TArray<int> TriangelsArray;
+	TArray<int32> TriangelsArray;
 	for (const FVector Offset : MapOfShadow)
 	{
 		if (!LightActor.IsValid() || !IsValid(LightActor.Get()))
@@ -432,10 +451,12 @@ void UAC_ShadowComponent::CreateOneShadow(TSoftObjectPtr<AActor> LightActor, int
 	}
 	else {
 		//UE_LOG(LogTemp, Warning, TEXT("VerticesArray or TriangelsArray is NOT empty!"));
-
+		/*
 		FFunctionGraphTask::CreateAndDispatchWhenReady([this, id, VerticesArray, TriangelsArray]() {
 			II_ShadowMeshInterface::Execute_UpdateShadowActorMesh(ShadeActor, id, VerticesArray, TriangelsArray);
-			}, TStatId(), nullptr, ENamedThreads::GameThread);
+			}, TStatId(), nullptr, ENamedThreads::GameThread);*/
+
+		CastedShadeActor->UpdateShadowActorMeshes(id, VerticesArray, TriangelsArray);
 	}
 
 	/*

@@ -15,7 +15,7 @@ AShade::AShade() : Super()
 	MeshComponent->SetupAttachment(RootComponent);
 	MeshComponent->bUseAsyncCooking = true;
 	MeshComponent->bUseComplexAsSimpleCollision = true;
-	//MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 	//MeshComponent->SetSimulatePhysics(false);
 }
 
@@ -26,49 +26,49 @@ void AShade::BeginPlay()
 	
 }
 
-// Called every frame
-void AShade::Tick(float DeltaTime)
+void AShade::UpdateShadowActorMeshes(int32 SectionID, const TArray<FVector>& VerticesArray, const TArray<int32>& TriangelsArray)
 {
-	Super::Tick(DeltaTime);
+	if (MeshComponent)
+	{
+		
+		FFunctionGraphTask::CreateAndDispatchWhenReady([this, SectionID, VerticesArray, TriangelsArray]() {
+			MeshComponent->CreateMeshSection(SectionID, VerticesArray, TriangelsArray, TArray<FVector>{}, TArray<FVector2D>{}, TArray<FColor>{}, TArray<FProcMeshTangent>{}, true);
+			}, TStatId(), nullptr, ENamedThreads::GameThread); 
 
+		//MeshComponent->CreateMeshSection(SectionID, VerticesArray, TriangelsArray, TArray<FVector>{}, TArray<FVector2D>{}, TArray<FColor>{}, TArray<FProcMeshTangent>{}, true);
+
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MeshComponent is not initialized!"));
+	}
 }
 
-FVector AShade::GetProceduralMeshLocation_Implementation()
+void AShade::RemoveMeschSection()
+{
+	MeshComponent->ClearAllMeshSections();
+}
+
+TArray<AActor*> AShade::GetAllOverlapingActors()
+{
+	TArray<AActor*> LocalOverlappingActors;
+	MeshComponent->GetOverlappingActors(LocalOverlappingActors);
+	return LocalOverlappingActors;
+}
+
+
+FVector AShade::GetProceduralMeshLocationNotInterf()
 {
 	return MeshComponent->GetComponentLocation();
 }
 
-FRotator AShade::GetProceduralRotation_Implementation()
+FRotator AShade::GetProceduralRotationNotInterf()
 {
 	return MeshComponent->GetComponentRotation();
 }
 
-void AShade::UpdateShadowActorMesh_Implementation(int32 SectionID, const TArray<FVector>& VerticesArray, const TArray<int32>& TriangelsArray)  
-{  
-   if (MeshComponent)  
-   {  
-       /*TArray<FVector> Normals;  
-       TArray<FVector2D> UV0;  
-       TArray<FColor> VertexColors;  
-       TArray<FProcMeshTangent> Tangents;
-
-       MeshComponent->CreateMeshSection(SectionID, VerticesArray, TriangelsArray, Normals, UV0, VertexColors, Tangents, true);  */
-
-       MeshComponent->CreateMeshSection(SectionID, VerticesArray, TriangelsArray, TArray<FVector>{}, TArray<FVector2D>{}, TArray<FColor>{}, TArray<FProcMeshTangent>{}, true);   
-   }  
-   else  
-   {  
-       UE_LOG(LogTemp, Warning, TEXT("MeshComponent is not initialized!"));  
-   }  
-}
-
-void AShade::UpdateShadowActorMeshTransform_Implementation(const FTransform& ObjTransform)
+void AShade::UpdateShadowActorMeshTransform(const FTransform& ObjTransform)
 {
 	SetActorTransform(ObjTransform);
 }
 
-/*
-void AShade::UpdateShadowActorMeshTransform_Implementation(const FTransform& ObjTransform)
-{
-	SetActorTransform(ObjTransform);
-}*/
