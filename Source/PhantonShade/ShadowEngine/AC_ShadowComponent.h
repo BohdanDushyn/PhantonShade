@@ -55,14 +55,24 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lighting")
     TArray<TSoftObjectPtr<AActor>> LightActors;
     
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shadow Actor Settings", meta = (AllowedClasses = "Actor"))
+    TSubclassOf<AActor> ShadowActorClass;
+
 protected:
+    UWorld* WorldPtr = GetWorld();
+
+    UClass* LightActorBlueprintClass;
+
 	virtual void BeginPlay() override;
 
 	FVector OwnerLocation;
 
 	FVector OwnerForwardVector;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TimerFunction")
     bool bTimerPaused = false;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ShadowFunction")
+    bool IsStarted = false;
 
     FTimerHandle MyTimerHandle;
 
@@ -88,6 +98,8 @@ protected:
     TArray<FVector> MapOfShadow;
 
 public:	 
+	void SpawnShadowActor();
+
     UFUNCTION(BlueprintCallable, Category = "Overlaping")
     TArray<AActor*> GetShadowOverlapingActors(){ return CastedShadeActor->GetAllOverlapingActors();}
 
@@ -125,7 +137,7 @@ public:
     int32 GetLightSoursAmount();
 
     UFUNCTION(BlueprintCallable, Category = "ShadowFunction")
-    void StartShadowCalculateWithParams(float TimerDelay, AActor* NewShadeActor, TArray<FVector> NewMapOfShadow, const TArray<AActor*>& NewLightActors, int AmountOfFloorPieces);
+    void StartShadowCalculateWithParams(float TimerDelay, TArray<FVector> NewMapOfShadow, const TArray<AActor*>& NewLightActors, int AmountOfFloorPieces);
 
     UFUNCTION(BlueprintCallable, Category = "ShadowFunction")
     void StartShadowCalculate();
@@ -159,5 +171,5 @@ public:
 
     void CreateOneShadow(TSoftObjectPtr<AActor> LightActor, int32 id);
 
-    void SetLightActorsFromOverlapping();
+    //void SetLightActorsFromOverlapping();
 };

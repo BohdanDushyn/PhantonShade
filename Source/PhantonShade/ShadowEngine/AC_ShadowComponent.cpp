@@ -40,6 +40,7 @@ void UAC_ShadowComponent::StartShadowCalculate()
 void UAC_ShadowComponent::StartShadowCalculateWithSetTimer(float NewTimer)
 {
 	//UE_LOG(LogTemp, Warning, TEXT("StartShadowCalculateWithSetTimer"));
+	IsStarted = true;
 	SetTimerInterval(NewTimer);
 	GetWorld()->GetTimerManager().SetTimer(
 		MyTimerHandle,
@@ -54,6 +55,57 @@ void UAC_ShadowComponent::StartShadowCalculateWithSetTimer(float NewTimer)
 void UAC_ShadowComponent::SetShadeActor(AActor* NewShadeActor)
 {
 	CastedShadeActor = Cast<AShade>(NewShadeActor);
+}
+
+void UAC_ShadowComponent::SpawnShadowActor()
+{
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		UE_LOG(LogTemp, Error, TEXT("Shadow Component: No owner actor found"));
+		return;
+	}
+
+	// Get Actor Transform (аналог Get Actor Transform з Blueprint)
+	FTransform OwnerTransform = OwnerActor->GetActorTransform();
+
+	if (ShadowActorClass)
+	{
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = OwnerActor; 
+			SpawnParams.Instigator = OwnerActor->GetInstigator();
+			SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			AActor* SpawnedActor = World->SpawnActor<AActor>(
+				ShadowActorClass,
+				OwnerTransform.GetLocation(),
+				OwnerTransform.GetRotation().Rotator(),
+				SpawnParams
+			);
+
+			if (SpawnedActor)
+			{
+				SetShadeActor(SpawnedActor);
+
+				UE_LOG(LogTemp, Warning, TEXT("Shadow Component: Successfully spawned shadow actor"));
+			}
+			else
+			{
+				UE_LOG(LogTemp, Error, TEXT("Shadow Component: Failed to spawn shadow actor"));
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Shadow Component: World is null"));
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Shadow Component: ShadowActorClass is not set! Please assign it in the editor."));
+	}
 }
 
 void UAC_ShadowComponent::SetParentActor()
@@ -172,13 +224,13 @@ int32 UAC_ShadowComponent::GetLightSoursAmount()
 	return LightActors.Num();
 }
 
-void UAC_ShadowComponent::StartShadowCalculateWithParams(float TimerDelay, AActor* NewShadeActor, TArray<FVector> NewMapOfShadow, const TArray<AActor*>& NewLightActors, int AmountOfFloorPieces)
+void UAC_ShadowComponent::StartShadowCalculateWithParams(float TimerDelay, TArray<FVector> NewMapOfShadow, const TArray<AActor*>& NewLightActors, int AmountOfFloorPieces)
 {
 	//UE_LOG(LogTemp, Warning, TEXT("StartShadowCalculateWithParams"));
 	SetMapOfShadow(NewMapOfShadow);
 	SetParentActor();
 	SetAmountOfPieces(AmountOfFloorPieces);
-	SetShadeActor(NewShadeActor);
+	SpawnShadowActor();
 	SetLightActors(NewLightActors);
 	StartShadowCalculateWithSetTimer(TimerDelay);
 }
@@ -194,9 +246,18 @@ FLineTraceResult UAC_ShadowComponent::LineTraceWithOffset(const FVector& LightSt
 	
 	TArray<FHitResult> HitResults;
 	
+	bool bHit = WorldPtr->LineTraceMultiByChannel(
+		HitResults,
+		LightStartLocation,
+		EndPoint,
+		ECollisionChannel::ECC_GameTraceChannel2,
+		FCollisionQueryParams{}
+	);
+
+
+	/*
 	auto TraceFunction = [this](const FVector& FuncStartPoint, const FVector& FuncEndPoint) {
 		TArray<FHitResult> FuncHitResults;
-		FCollisionQueryParams Params;
 		if (!GetWorld())
 		{
 			return FuncHitResults;
@@ -206,59 +267,8 @@ FLineTraceResult UAC_ShadowComponent::LineTraceWithOffset(const FVector& LightSt
 			FuncStartPoint,
 			FuncEndPoint,
 			ECollisionChannel::ECC_GameTraceChannel2,
-			Params
+			FCollisionQueryParams{}
 		);
-
-		// Завжди малюємо повну лінію
-		/*
-		FColor LineColor = bHit ? FColor::Red : FColor::Green;
-		DrawDebugLine(
-			GetWorld(),
-			FuncStartPoint,
-			FuncEndPoint,
-			LineColor,
-			false,      // persistent lines
-			0.1f,       // lifetime (seconds)
-			0,          // depth priority
-			1.0f        // thickness
-		);*/
-		
-		/*
-		// Малюємо точки влучання для всіх перетинів
-		if (bHit)
-		{
-			for (const FHitResult& HitResult : FuncHitResults)
-			{
-				// Малюємо точку влучання
-				DrawDebugSphere(
-					GetWorld(),
-					HitResult.Location,
-					5.0f,       // radius
-					12,         // segments
-					FColor::Yellow,
-					false,      // persistent
-					0.1f,       // lifetime
-					0,          // depth priority
-					1.0f        // thickness
-				);
-				
-				
-				// Опціонально: малюємо нормаль поверхні
-				//DrawDebugDirectionalArrow(
-				//	GetWorld(),
-				//	HitResult.Location,
-				//	HitResult.Location + HitResult.Normal * 30.0f,
-				//	8.0f,       // arrow size
-				//	FColor::Blue,
-				//	false,      // persistent
-				//	0.1f,       // lifetime
-				//	0,          // depth priority
-				//	1.5f        // thickness
-				//);
-				
-			}
-		}
-		*/
 
 		return FuncHitResults;
 		};
@@ -270,6 +280,8 @@ FLineTraceResult UAC_ShadowComponent::LineTraceWithOffset(const FVector& LightSt
 		}, TStatId(), nullptr, ENamedThreads::GameThread)->Wait();
 
 	HitResults = *SharedResults;
+	*/
+	
 
 	//UE_LOG(LogTemp, Warning, TEXT("HitResults %d %d"), Offset, HitResults.Num());
 	int8 LastHit = HitResults.Num() - 1;
@@ -335,10 +347,11 @@ TArray<FVector> UAC_ShadowComponent::MakeShadowFloor(FVector OffsetValue, FVecto
 
 void UAC_ShadowComponent::CreateShadow()
 {
+	WorldPtr = GetWorld();
 
 	if (LightActors.Num() == 0) return;
 
-	TArray<TSoftObjectPtr<AActor>> LightActorsCopy = LightActors;
+	//TArray<TSoftObjectPtr<AActor>> LightActorsCopy = LightActors;
 
 	OwnerLocation = GetOwner()->GetActorLocation();
 	OwnerForwardVector = GetOwner()->GetActorForwardVector();
@@ -359,23 +372,24 @@ void UAC_ShadowComponent::CreateShadow()
 	TWeakObjectPtr<UAC_ShadowComponent> WeakThis(this);
 
 	
-	for (int32 i = 0; i < LightActorsCopy.Num(); i++)
+	for (int32 i = 0; i < LightActors.Num(); i++)
 	{
+		TSoftObjectPtr<AActor> LightActorsCopyOne = LightActors[i];
 
 		FGraphEventRef Task = FFunctionGraphTask::CreateAndDispatchWhenReady(
-			[WeakThis, LightActorsCopy, i]()
+			[WeakThis, LightActorsCopyOne, i]()
 			{
 				if (UAC_ShadowComponent* ValidComponent = WeakThis.Get())
 				{
 					if (IsValid(ValidComponent))
 					{
-						ValidComponent->CreateOneShadow(LightActorsCopy[i], i);
+						ValidComponent->CreateOneShadow(LightActorsCopyOne, i);
 					}
 				}
 			},
 			TStatId(),
 			nullptr,
-			ENamedThreads::AnyBackgroundHiPriTask
+			ENamedThreads::AnyThread
 		);
 		Tasks.Add(Task);
 	}
