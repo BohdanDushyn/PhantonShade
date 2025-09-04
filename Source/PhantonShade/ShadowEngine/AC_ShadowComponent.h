@@ -86,9 +86,6 @@ protected:
 
     AShade* CastedShadeActor;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Overlaping")
-    TArray<AActor*> OverlapingActors;
-
     float OffsetFromPlane = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ShadowFunction")
