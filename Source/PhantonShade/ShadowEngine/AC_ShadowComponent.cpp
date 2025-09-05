@@ -66,7 +66,6 @@ void UAC_ShadowComponent::SpawnShadowActor()
 		return;
 	}
 
-	// Get Actor Transform (аналог Get Actor Transform з Blueprint)
 	FTransform OwnerTransform = OwnerActor->GetActorTransform();
 
 	if (ShadowActorClass)
@@ -347,7 +346,7 @@ TArray<FVector> UAC_ShadowComponent::MakeShadowFloor(FVector OffsetValue, FVecto
 
 void UAC_ShadowComponent::CreateShadow()
 {
-	WorldPtr = GetWorld();
+	uint64 StartCycles = FPlatformTime::Cycles64();
 
 	if (LightActors.Num() == 0) return;
 
@@ -364,6 +363,8 @@ void UAC_ShadowComponent::CreateShadow()
 		UE_LOG(LogTemp, Error, TEXT("ShadeActor is not valid in CreateShadow"));
 		return;
 	}
+
+	WorldPtr = GetWorld();
 
 	CastedShadeActor->UpdateShadowActorMeshTransform(GetOwner()->GetActorTransform());
 	MeshLocationVector = CastedShadeActor->GetActorLocation();
@@ -395,6 +396,21 @@ void UAC_ShadowComponent::CreateShadow()
 	}
 
 	FTaskGraphInterface::Get().WaitUntilTasksComplete(Tasks);
+	
+
+	uint64 EndCycles = FPlatformTime::Cycles64();
+	timer1Value += FPlatformTime::ToSeconds64(EndCycles - StartCycles);
+
+	timer1Counter += 1;
+	
+	if (timer1Counter >= 30)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("High precision time: %f ms"), timer1Value * 1000.0 / timer1Counter);
+		timer1Value = 0;
+		timer1Counter = 0;
+	}
+
+	
 
 	//UE_LOG(LogTemp, Warning, TEXT("Amount %d"), CastedShadeActor->GetMeshNumSections());
 	//UE_LOG(LogTemp, Warning, TEXT("LightAmount %d"), LightActors.Num());

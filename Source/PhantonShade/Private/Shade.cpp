@@ -16,7 +16,7 @@ AShade::AShade() : Super()
 	MeshComponent->bUseAsyncCooking = true;
 	MeshComponent->bUseComplexAsSimpleCollision = true;
 	MeshComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-	//MeshComponent->SetSimulatePhysics(false);
+	MeshComponent->SetSimulatePhysics(false);
 }
 
 // Called when the game starts or when spawned
@@ -30,13 +30,29 @@ void AShade::UpdateShadowActorMeshes(int32 SectionID, const TArray<FVector>& Ver
 {
 	if (MeshComponent)
 	{
+		if (MeshComponent->GetProcMeshSection(SectionID) && MeshComponent->GetProcMeshSection(SectionID)->ProcVertexBuffer.Num() == VerticesArray.Num())
+		{
+			for (int32 i = 0; i < VerticesArray.Num(); i++)
+			{
+				if (MeshComponent->GetProcMeshSection(SectionID) && MeshComponent->GetProcMeshSection(SectionID)->ProcVertexBuffer[i].Position != VerticesArray[i])
+				{
+					FFunctionGraphTask::CreateAndDispatchWhenReady([this, SectionID, VerticesArray, TriangelsArray]() {
+						MeshComponent->CreateMeshSection(SectionID, VerticesArray, TriangelsArray, TArray<FVector>{}, TArray<FVector2D>{}, TArray<FColor>{}, TArray<FProcMeshTangent>{}, true);
+						}, TStatId(), nullptr, ENamedThreads::GameThread);
+					return;
+				}
+			}
+		}
+		else {
+			FFunctionGraphTask::CreateAndDispatchWhenReady([this, SectionID, VerticesArray, TriangelsArray]() {
+				MeshComponent->CreateMeshSection(SectionID, VerticesArray, TriangelsArray, TArray<FVector>{}, TArray<FVector2D>{}, TArray<FColor>{}, TArray<FProcMeshTangent>{}, true);
+				}, TStatId(), nullptr, ENamedThreads::GameThread);
+		}
 		
+		/*
 		FFunctionGraphTask::CreateAndDispatchWhenReady([this, SectionID, VerticesArray, TriangelsArray]() {
 			MeshComponent->CreateMeshSection(SectionID, VerticesArray, TriangelsArray, TArray<FVector>{}, TArray<FVector2D>{}, TArray<FColor>{}, TArray<FProcMeshTangent>{}, true);
-			}, TStatId(), nullptr, ENamedThreads::GameThread); 
-
-		//MeshComponent->CreateMeshSection(SectionID, VerticesArray, TriangelsArray, TArray<FVector>{}, TArray<FVector2D>{}, TArray<FColor>{}, TArray<FProcMeshTangent>{}, true);
-
+			}, TStatId(), nullptr, ENamedThreads::GameThread);*/
 	}
 	else
 	{
@@ -51,9 +67,8 @@ void AShade::RemoveMeschSection()
 
 TArray<AActor*> AShade::GetAllOverlapingActors()
 {
-	TArray<AActor*> LocalOverlappingActors;
-	MeshComponent->GetOverlappingActors(LocalOverlappingActors);
-	return LocalOverlappingActors;
+	MeshComponent->GetOverlappingActors(OverlappingActors);
+	return OverlappingActors;
 }
 
 

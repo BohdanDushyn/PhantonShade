@@ -28,8 +28,11 @@ protected:
 	virtual void BeginPlay() override;
 
 public:	
+	TArray<AActor*> OverlappingActors;
+
 	void UpdateShadowActorMeshes(int32 SectionID, const TArray<FVector>& VerticesArray, const TArray<int32>& TriangelsArray);
 	void RemoveMeschSection();
+
 
 	UFUNCTION(BlueprintCallable, Category = "Overlaping")
 	TArray<AActor*> GetAllOverlapingActors();

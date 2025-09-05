@@ -67,6 +67,13 @@ protected:
 
 	FVector OwnerLocation;
 
+
+    float timer1Value = 0;
+
+    int32 timer1Counter = 0;
+
+
+
 	FVector OwnerForwardVector;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TimerFunction")
